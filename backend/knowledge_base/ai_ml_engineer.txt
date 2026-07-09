@@ -1,0 +1,20 @@
+Model Evaluation Metrics
+Accuracy is misleading on imbalanced datasets; precision measures the fraction of predicted positives that are correct, while recall measures the fraction of actual positives that were found. The F1 score is the harmonic mean of precision and recall, useful when both false positives and false negatives matter. ROC-AUC evaluates ranking quality across thresholds, while precision-recall curves are more informative for imbalanced classes. For regression, RMSE penalizes large errors more than MAE. Cross-validation, especially k-fold, gives a more robust estimate of generalization than a single train/test split.
+
+Overfitting and Regularization
+Overfitting occurs when a model captures noise in training data rather than the underlying signal, resulting in poor generalization. Regularization techniques like L1 (Lasso, which promotes sparsity) and L2 (Ridge, which shrinks weights smoothly) add penalty terms to the loss function. Dropout randomly disables neurons during training to prevent co-adaptation. Early stopping halts training when validation loss stops improving. Data augmentation increases effective dataset size and diversity, and is particularly effective in computer vision.
+
+Neural Network Architectures
+Convolutional Neural Networks (CNNs) use shared filters to detect local spatial patterns, well suited for images. Recurrent Neural Networks (RNNs) and their gated variants (LSTM, GRU) process sequences by maintaining hidden state, but struggle with long-range dependencies due to vanishing gradients. Transformers replaced recurrence with self-attention, allowing parallel processing of sequences and better long-range dependency modeling; they underpin modern large language models. Residual connections (skip connections) help gradients flow through very deep networks, mitigating vanishing gradients.
+
+Feature Engineering
+Good features often matter more than model choice. Techniques include normalization/standardization (critical for gradient-based models), one-hot or target encoding for categorical variables, handling missing values via imputation, and creating interaction terms. Feature selection methods (filter, wrapper, embedded) reduce dimensionality and can improve both performance and interpretability. Domain knowledge often produces the highest-value engineered features, such as time-based aggregates in fraud detection.
+
+Training Pipelines
+A robust ML pipeline separates data ingestion, preprocessing, training, evaluation, and deployment into modular, reproducible stages. Experiment tracking tools (MLflow, Weights & Biases) log hyperparameters, metrics, and artifacts for comparison. Data versioning ensures reproducibility alongside code versioning. Hyperparameter tuning can use grid search, random search, or more sample-efficient approaches like Bayesian optimization. Pipelines should guard against data leakage, where information from outside the training set (often from the future or the test set) inadvertently influences training.
+
+Vector Embeddings and Retrieval
+Embeddings map data (text, images) into dense vectors where geometric proximity reflects semantic similarity. Retrieval-Augmented Generation (RAG) systems embed a knowledge corpus, store vectors in a vector database (e.g., ChromaDB, FAISS, Pinecone), and at query time retrieve the nearest chunks to ground a language model's output in factual context. Chunking strategy (size and overlap) significantly affects retrieval quality: chunks too large dilute relevance, too small lose context. Approximate nearest neighbor algorithms like HNSW make retrieval fast at scale.
+
+MLOps and Model Deployment
+Deploying a model involves packaging it (e.g., as a REST endpoint, batch job, or embedded artifact), monitoring for data drift and performance degradation over time, and establishing rollback strategies. Shadow deployment and canary releases let teams validate a new model against production traffic before full rollout. Model registries track versions and lineage. Latency and throughput requirements often dictate whether a model runs on CPU, GPU, or is distilled/quantized for edge deployment.

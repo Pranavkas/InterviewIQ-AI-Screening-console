@@ -1,0 +1,72 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # github.repository is <owner>/<repo> (e.g. prana/ai-interview-system)
+  # Downcase the repository name to make it a valid Docker image name
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Convert repository name to lowercase for Docker compatibility
+      - name: Lowercase Repository Name
+        id: string
+        run: |
+          echo "repo_lowercase=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
+      # Build and Push Backend Image
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.string.outputs.repo_lowercase }}/backend:latest
+            ${{ env.REGISTRY }}/${{ steps.string.outputs.repo_lowercase }}/backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and Push Frontend Image
+      # Note: VITE_API_BASE_URL should be set as a build argument in production
+      # Or configured via your hosting provider (e.g., Render/Railway)
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=http://localhost:8000
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.string.outputs.repo_lowercase }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ steps.string.outputs.repo_lowercase }}/frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
