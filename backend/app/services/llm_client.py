@@ -100,7 +100,11 @@ def _groq_available() -> bool:
 # ---------------------------------------------------------------------------
 def _dispatch(prompt: str, system: str, temperature: float) -> str:
     if settings.LLM_PROVIDER == "groq":
-        return _groq_post(prompt, system, temperature)
+        res = _groq_post(prompt, system, temperature)
+        if res:
+            return res
+        logger.warning("Groq request failed or returned empty. Falling back to local Ollama...")
+        return _ollama_post(prompt, system, temperature)
     return _ollama_post(prompt, system, temperature)
 
 
@@ -137,9 +141,15 @@ def generate_json(prompt: str, system: str = "", temperature: float = 0.2):
 
 def is_llm_available() -> bool:
     if settings.LLM_PROVIDER == "groq":
-        return _groq_available()
+        return _groq_available() or _ollama_available()
     return _ollama_available()
 
 
 def active_model_name() -> str:
-    return settings.GROQ_MODEL if settings.LLM_PROVIDER == "groq" else settings.OLLAMA_MODEL
+    if settings.LLM_PROVIDER == "groq":
+        if _groq_available():
+            return settings.GROQ_MODEL
+        if _ollama_available():
+            return f"{settings.OLLAMA_MODEL} (Ollama Fallback)"
+        return "None"
+    return settings.OLLAMA_MODEL if _ollama_available() else "None"
