@@ -13,7 +13,7 @@ export default function Home() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.listRoles().then(setRoles).catch(() => setError('Could not reach the backend. Is it running on port 8000?'))
+    api.listRoles().then(setRoles).catch(() => setError(`Could not reach the backend at ${api.getBaseUrl()}. Is the server running?`))
   }, [])
 
   const onDrop = (e) => {

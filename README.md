@@ -1,9 +1,22 @@
-# InterviewIQ-An-AI-Powered-Candidate-Screening-System.
+# InterviewIQ — AI-Powered Candidate Screening System
 
 A full-stack, RAG-driven system that simulates a structured technical
 interview. Questions are **not predefined** — they're generated at runtime
 from the candidate's resume, the selected role, and a role-specific
 knowledge base retrieved via a local vector store.
+
+## 🚀 Live Demo (Run directly from GitHub)
+
+You can run and test the frontend interface directly from GitHub Pages:
+👉 **[Live Demo on GitHub Pages](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/)**
+
+### How to use the Live Demo:
+1. Open the [Live Demo Link](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/).
+2. By default, the frontend attempts to connect to your local backend at `http://localhost:8000`.
+3. If you have deployed the backend (e.g., on Render or Railway) or run it elsewhere, click the **Gear (API Configuration) icon** in the topbar of the header, enter your backend's API URL, and click **Save**.
+4. The frontend dynamically updates to point to your backend!
+
+*Note: If connecting to a deployed backend from the live demo, make sure to add `https://pranavkas.github.io` to your backend's `ALLOWED_ORIGINS` in `.env` to prevent CORS issues.*
 
 ```
 Resume + Role  ─▶  Resume Processing  ─▶  Context Construction  ─▶  RAG Retrieval  ─▶  Question Generation

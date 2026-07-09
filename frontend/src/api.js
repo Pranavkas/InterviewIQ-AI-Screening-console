@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+export const getBaseUrl = () => {
+  return localStorage.getItem('VITE_API_BASE_URL') || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+};
 
 async function handle(res) {
   if (!res.ok) {
@@ -13,30 +15,32 @@ async function handle(res) {
 }
 
 export const api = {
-  health: () => fetch(`${BASE_URL}/api/health`).then(handle),
+  getBaseUrl,
 
-  listRoles: () => fetch(`${BASE_URL}/api/candidates/roles`).then(handle),
+  health: () => fetch(`${getBaseUrl()}/api/health`).then(handle),
+
+  listRoles: () => fetch(`${getBaseUrl()}/api/candidates/roles`).then(handle),
 
   uploadResume: (file, role) => {
     const form = new FormData()
     form.append('file', file)
     form.append('role', role)
-    return fetch(`${BASE_URL}/api/candidates/upload-resume`, {
+    return fetch(`${getBaseUrl()}/api/candidates/upload-resume`, {
       method: 'POST',
       body: form,
     }).then(handle)
   },
 
   nextQuestion: (sessionId) =>
-    fetch(`${BASE_URL}/api/interview/${sessionId}/next-question`).then(handle),
+    fetch(`${getBaseUrl()}/api/interview/${sessionId}/next-question`).then(handle),
 
   submitAnswer: (sessionId, qaId, answerText) =>
-    fetch(`${BASE_URL}/api/interview/${sessionId}/answer`, {
+    fetch(`${getBaseUrl()}/api/interview/${sessionId}/answer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ qa_id: qaId, answer_text: answerText }),
     }).then(handle),
 
   getSummary: (sessionId) =>
-    fetch(`${BASE_URL}/api/interview/${sessionId}/summary`).then(handle),
+    fetch(`${getBaseUrl()}/api/interview/${sessionId}/summary`).then(handle),
 }
