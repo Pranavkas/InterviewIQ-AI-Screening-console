@@ -1,4 +1,4 @@
-# Panel — AI-Powered Candidate Screening System
+# InterviewIQ-An-AI-Powered-Candidate-Screening-System.
 
 A full-stack, RAG-driven system that simulates a structured technical
 interview. Questions are **not predefined** — they're generated at runtime
