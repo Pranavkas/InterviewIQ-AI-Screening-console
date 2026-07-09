@@ -1,218 +1,125 @@
 # InterviewIQ — AI-Powered Candidate Screening System
 
-A full-stack, RAG-driven system that simulates a structured technical
-interview. Questions are **not predefined** — they're generated at runtime
-from the candidate's resume, the selected role, and a role-specific
-knowledge base retrieved via a local vector store.
+[![GitHub Pages](https://img.shields.io/badge/Live-Demo--on--GitHub--Pages-2dd4bf?style=for-the-badge&logo=github)](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/)
+[![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/Pranavkas/InterviewIQ-An-AI-Powered-Candidate-Screening-System)
 
-## 🚀 Live Demo (Run directly from GitHub)
-
-You can run and test the frontend interface directly from GitHub Pages:
-👉 **[Live Demo on GitHub Pages](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/)**
-
-### How to use the Live Demo:
-1. Open the [Live Demo Link](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/).
-2. By default, the frontend attempts to connect to your local backend at `http://localhost:8000`.
-3. If you have deployed the backend (e.g., on Render or Railway) or run it elsewhere, click the **Gear (API Configuration) icon** in the topbar of the header, enter your backend's API URL, and click **Save**.
-4. The frontend dynamically updates to point to your backend!
-
-*Note: If connecting to a deployed backend from the live demo, make sure to add `https://pranavkas.github.io` to your backend's `ALLOWED_ORIGINS` in `.env` to prevent CORS issues.*
+A production-ready, full-stack, RAG-driven screening system that simulates structured technical interviews. Questions are generated dynamically at runtime based on the candidate's resume, the selected role, and custom role-specific knowledge bases fetched via local vector retrieval.
 
 ```
 Resume + Role  ─▶  Resume Processing  ─▶  Context Construction  ─▶  RAG Retrieval  ─▶  Question Generation
-                                                                                              │
+                                                                                               │
 Final Summary  ◀─  Response Handling  ◀─  Interactive Interview (adaptive)  ◀────────────────┘
 ```
 
-## Architecture
+---
+
+## 🚀 Key Features
+
+*   **RAG-Driven Question Ingestion:** Dynamically queries role-specific knowledge bases to build contextually relevant grounding material.
+*   **Adaptive Screening Flow:** A feedback loop adjusts the difficulty of the next question based on the candidate's answer scores (stronger answers escalate difficulty; weaker ones ease off).
+*   **Offline-First Architecture:** Supports fully offline operation using a local Ollama LLM and offline vector indexing, alongside hosted API support (Groq).
+*   **High Resilience & Fallbacks:** Zero hard failures if LLMs go offline. All AI pipeline steps have deterministic fallbacks (keyword matching, length-based scoring, static question pools) to ensure the system is always operational.
+*   **Containerized & Cloud-Ready:** Multi-stage Docker builds, Docker Compose configurations, and GitHub Actions CI/CD workflows for automated compilation and deployment.
+
+---
+
+## 🛠️ Architecture & Separation of Concerns
+
+The project adheres to clean engineering principles with a clear boundaries layout:
 
 ```
 ai-interview-system/
 ├── backend/                     FastAPI service — all business logic lives here
 │   ├── app/
-│   │   ├── main.py               App wiring, CORS, startup checks
-│   │   ├── config.py             ALL configuration via environment variables
-│   │   ├── database.py           SQLAlchemy engine/session (SQLite by default)
-│   │   ├── models.py             ORM models: Candidate, Session, QuestionAnswer, Report
-│   │   ├── schemas.py            Pydantic request/response contracts
-│   │   ├── routers/
-│   │   │   ├── candidates.py     Resume upload + role selection
-│   │   │   └── interview.py      Question loop, answer submission, summary
-│   │   └── services/
-│   │       ├── resume_parser.py  PDF/text extraction + skill/tech/domain extraction
-│   │       ├── rag_engine.py     Chunking + ChromaDB indexing + retrieval
-│   │       ├── llm_client.py     Ollama wrapper (generation + robust JSON parsing)
-│   │       └── interview_engine.py  Orchestrates context→retrieval→question→eval→report
-│   ├── knowledge_base/           Role-specific corpora (plain text, one per role)
-│   └── scripts/ingest_kb.py      One-time/rerunnable embedding of the knowledge base
-└── frontend/                     React (Vite) app
-    └── src/
-        ├── pages/Home.jsx         Candidate entry: resume upload + role select
-        ├── pages/Interview.jsx    Interactive Q&A loop with adaptive difficulty
-        ├── pages/Summary.jsx      Final structured report + full transcript
-        └── api.js                 Single place all backend calls go through
+│   │   ├── main.py               App startup, middleware config, CORS
+│   │   ├── config.py             Settings management via pydantic-like env loader
+│   │   ├── database.py           SQLAlchemy engine and database sessions (SQLite)
+│   │   ├── models.py             ORM tables: Candidate, Session, QuestionAnswer, Report
+│   │   ├── schemas.py            Pydantic validation schemas (API contracts)
+│   │   ├── routers/              FastAPI endpoints (candidates, interview loop)
+│   │   └── services/             Pluggable business logic (Resume parser, RAG, LLM client)
+│   ├── knowledge_base/           Role-specific txt corpora
+│   └── scripts/ingest_kb.py      Knowledge base indexing script
+├── frontend/                     React (Vite) frontend application
+│   └── src/
+│       ├── components/           Reusable UI elements
+│       ├── pages/                Home, Interview, and Summary views
+│       ├── api.js                Centralized fetch service wrapper
+│       └── App.jsx               App routing & topbar settings integration
+└── render.yaml                   Render Blueprint definition
 ```
 
-**Separation of concerns:** routers only handle HTTP concerns and call into
-`services/`; `services/` contains all AI/ML and business logic and knows
-nothing about HTTP; `models.py`/`database.py` is the only place that talks
-to the database. Swapping the LLM provider or vector store means editing
-exactly one file each (`llm_client.py`, `rag_engine.py`).
+*   **Decoupled AI Engine:** Swapping the LLM provider (Ollama/Groq) or replacing the vector store database requires updating exactly one file (`llm_client.py` and `rag_engine.py` respectively).
+*   **Persistent State:** Screening sessions, answers, and synthesized reports are persisted in SQLite, ensuring candidate state survives browser refreshes.
 
-## How each pipeline stage is implemented
+---
 
-| Stage | Where | How |
-|---|---|---|
-| Resume Processing | `resume_parser.py` | `pypdf` text extraction + a curated skill/tech/domain taxonomy (regex matching), enriched by an LLM extraction pass when Ollama is available. Deterministic fallback means the system still works with the LLM offline. |
-| Context Construction | `interview_engine.build_topic_queue` | Interleaves the role's core topics with the candidate's own extracted skills/technologies into a prioritized topic queue. |
-| Knowledge Retrieval (RAG) | `rag_engine.py` | Each role's corpus is chunked by paragraph, embedded with an **offline TF-IDF vectorizer** (no external downloads/API calls needed), and stored in a per-role ChromaDB collection. Retrieval is a nearest-neighbor query per topic. |
-| Question Generation | `interview_engine.generate_question` | Prompts the local Ollama model with the retrieved chunks + candidate background + target difficulty, and parses strict JSON output. Falls back to a deterministic templated question if the model is unreachable or returns malformed output. |
-| Interactive Interview | `routers/interview.py` + `Interview.jsx` | Session state (topic queue, question index, running difficulty) is persisted in the `interview_sessions` table, so the flow survives page refreshes. |
-| Adaptive difficulty | `interview_engine.next_difficulty` | A strong answer (≥7.5/10) escalates difficulty for the next question; a weak one (<4/10) eases off. |
-| Response Handling | `question_answers` table | Every question, its grounding context, the candidate's answer, and its score/feedback are stored. |
-| Final Output | `synthesize_report` + `Summary.jsx` | LLM synthesizes strengths/weaknesses/narrative from the full transcript (with a deterministic score-based fallback), persisted in `session_reports`. |
+## 🧬 Core Pipelines
 
-## Design decisions worth calling out
+| Pipeline Stage | Implementation File | Technical Approach |
+| :--- | :--- | :--- |
+| **Resume Parsing** | `resume_parser.py` | Combines `pypdf` text extraction with regex-based taxonomy matching, enriched by an LLM parsing pass if online. |
+| **Grounding (RAG)** | `rag_engine.py` | Paragraph-level text chunking, embedded locally via an offline TF-IDF vectorizer, stored inside ChromaDB. |
+| **Adaptivity** | `interview_engine.py` | Calculates rolling difficulty adjustments. Ratings $\ge 7.5/10$ step up difficulty; ratings $< 4/10$ step down difficulty. |
+| **Evaluation** | `interview_engine.py` | Automatically scores and evaluates candidate answers based on retrieved reference material. |
 
-- **Offline-first AI stack.** Both the LLM (Ollama) and the embeddings
-  (TF-IDF, fit per-role at ingest time) run entirely locally — no API keys,
-  no external network calls at runtime. This matches the "local model"
-  brief and means the system works in network-restricted environments.
-- **Never a hard failure if the LLM is down.** Every LLM call site has a
-  deterministic fallback (keyword extraction, templated questions,
-  length-based scoring) so the *pipeline* (RAG → generation → evaluation →
-  report) is always demonstrable end-to-end, with or without Ollama running.
-- **Config via environment variables only** — see `backend/.env.example`.
-  Nothing is hardcoded (model name, DB URL, chunk size, question count,
-  adaptivity on/off, CORS origins are all tunable).
+---
 
-## LLM provider: Ollama (default) or Groq
+## ⚡ Deployment & Hosting
 
-The LLM is fully pluggable via `LLM_PROVIDER` in `.env` — every other module
-calls `generate_text()` / `generate_json()` / `is_llm_available()` from
-`llm_client.py` and doesn't know or care which provider is behind them.
+### 1. Frontend (GitHub Pages)
+The React client is hosted directly on GitHub Pages. You can test it live:
+👉 **[Launch Live InterviewIQ Client](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/)**
 
-**Ollama (default, fully local, no API key):**
-```bash
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.1
-```
+*To communicate with your own backend from the live site, click the **Gear (API Configuration) icon** in the top header and type your backend URL.*
 
-**Groq (hosted, very fast inference, needs a free API key from [console.groq.com](https://console.groq.com)):**
-```bash
-LLM_PROVIDER=groq
-GROQ_API_KEY=gsk_...your_key...
-GROQ_MODEL=llama-3.3-70b-versatile
-```
-No code or dependency changes needed to switch — just edit `.env` and
-restart the backend. `GET /api/health` reports which provider is active and
-whether it's currently reachable.
-
-## Running it locally
-
-### Prerequisites
-- Python 3.10+
-- Node 18+
-- [Ollama](https://ollama.com) installed, with a model pulled, e.g.:
-  ```bash
-  ollama pull llama3.1
-  ollama serve   # usually runs automatically after install
-  ```
-
-### 1. Backend
-
-```bash
-cd backend
-python3 -m venv venv && source venv/bin/activate     # optional but recommended
-pip install -r requirements.txt
-cp .env.example .env                                  # edit if needed
-
-python -m scripts.ingest_kb                            # embed the knowledge base (run once)
-uvicorn app.main:app --reload --port 8000
-```
-
-Visit `http://localhost:8000/docs` for interactive API docs.
-`GET /api/health` reports whether Ollama is currently reachable.
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env       # points at http://localhost:8000 by default
-npm run dev
-```
-
-Visit `http://localhost:5173`.
-
-### 3. Try it
-1. Upload a resume (`.pdf` or `.txt`) and pick a role.
-2. Answer the generated questions — the difficulty chip adapts as you go.
-3. Review the final summary: overall score, strengths, gaps, and the full
-   transcript.
-
-## Extending the system
-
-- **Add a role:** add an entry to `ROLE_CONFIG` in `backend/app/config.py`
-  and a `.txt` corpus file in `backend/knowledge_base/`, then re-run
-  `python -m scripts.ingest_kb`.
-- **Swap the LLM provider:** edit `backend/app/services/llm_client.py` only.
-- **Swap the vector store / embeddings:** edit
-  `backend/app/services/rag_engine.py` only (e.g. drop in
-  `SentenceTransformerEmbeddingFunction` or a Pinecone client if you have
-  GPU/network available).
-- **Swap the database:** set `DATABASE_URL` to any SQLAlchemy-supported URL
-  (e.g. Postgres) — no code changes needed.
-
-## Docker & Deployment
-
-This project is fully containerized and ready for deployment using Docker.
-
-### Local Deployment with Docker Compose
-
-If you have Docker installed, you can spin up the entire full-stack application locally with a single command:
-
-```bash
-docker compose up --build
-```
-
-- The frontend will be accessible at `http://localhost` (port 80).
-- The backend will run at `http://localhost:8000`.
-- Backend SQLite and ChromaDB data are persisted in the host directory `./backend/data`.
-
-### Deploying to Render (Recommended PaaS)
-
-You can deploy the FastAPI backend service automatically using our Render Blueprint configuration:
+### 2. Backend (Render Cloud Hosting)
+You can deploy the backend FastAPI server to Render with one click using the blueprint button below. This spins up the server and prepares all settings automatically:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Pranavkas/InterviewIQ-An-AI-Powered-Candidate-Screening-System)
 
-#### Automatic Blueprint Deployment:
-1. Click the **Deploy to Render** button above.
-2. Render will automatically read the `render.yaml` file from the repository.
-3. You will be prompted to enter your **`GROQ_API_KEY`**.
-4. Click **Apply**. Render will automatically provision:
-   * A FastAPI Web Service building from `backend/Dockerfile`.
-   * A 1 GB persistent disk for your SQLite database and ChromaDB storage (mounted at `/app/data`).
-   * Clean environment variables preset for your Groq API integration and CORS.
-5. Once deployment is complete, copy the backend URL provided by Render (e.g. `https://interview-iq-backend.onrender.com`).
-6. Go to your live [GitHub Pages site](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/), click the **Gear (API settings) icon** in the topbar, enter your new Render backend URL, and click **Save**!
+1. Click the button to open Render's blueprint dashboard.
+2. Enter your **`GROQ_API_KEY`** when prompted.
+3. Click **Apply** to build and spin up the Docker backend.
+4. Copy the backend service URL generated by Render, paste it into the **API settings** gear on the live demo frontend, and you're good to go!
 
-#### Manual Setup (Alternative):
-If you prefer to configure the backend service manually on Render:
-- Create a new **Web Service** on Render linked to your repository.
-- Set the **Root Directory** to `backend`.
-- Select **Docker** as the Runtime (Render will automatically detect and build using `backend/Dockerfile`).
-- Add the following **Environment Variables** in the Render settings:
-  - `LLM_PROVIDER`: Set to `groq` (highly recommended for production hosting).
-  - `GROQ_API_KEY`: Your Groq API key.
-  - `GROQ_MODEL`: `llama-3.3-70b-versatile` (or your model of choice).
-- (Optional) Set up a **Persistent Disk** on Render:
-  - Mount Path: `/app/data`
-  - Size: 1 GB (plenty for SQLite and embeddings).
-  - Add `DATABASE_URL=sqlite:////app/data/interview.db` and `CHROMA_PERSIST_DIR=/app/data/chroma_store` to environment variables.
+---
 
-### CI/CD with GitHub Actions
+## 💻 Local Development Setup
 
-This repository includes a GitHub Actions workflow in `.github/workflows/docker-build-push.yml`.
-On every push to the `main` or `master` branch, it automatically builds the frontend and backend Docker containers and pushes them to the **GitHub Container Registry (GHCR)** under `ghcr.io/<your-username>/ai-interview-system/backend:latest` and `frontend:latest`.
+### Prerequisites
+*   Python 3.10+
+*   Node.js 18+
+*   *(Optional)* [Ollama](https://ollama.com) for running LLMs locally.
+
+### 1. Backend Service
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # On Windows use: .\venv\Scripts\activate
+
+# Install dependencies & prepare environment
+pip install -r requirements.txt
+cp .env.example .env      # Configure your LLM_PROVIDER and GROQ_API_KEY here
+
+# Ingest knowledge base files and start the server
+python -m scripts.ingest_kb
+uvicorn app.main:app --reload --port 8000
+```
+*Access interactive API documentation at `http://localhost:8000/docs`.*
+
+### 2. Frontend client
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*Access the React UI at `http://localhost:5173`.*
+
+### 3. Docker Compose (Alternative Local Build)
+To spin up both services containerized locally:
+```bash
+docker compose up --build
+```
+*   Frontend: `http://localhost` (port 80)
+*   Backend: `http://localhost:8000`
