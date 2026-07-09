@@ -183,28 +183,34 @@ docker compose up --build
 
 ### Deploying to Render (Recommended PaaS)
 
-To host your application on Render, set up the Frontend and Backend as two separate services linked to your GitHub repository:
+You can deploy the FastAPI backend service automatically using our Render Blueprint configuration:
 
-#### 1. Backend (FastAPI Web Service)
-- Create a new **Web Service** on Render.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Pranavkas/InterviewIQ-An-AI-Powered-Candidate-Screening-System)
+
+#### Automatic Blueprint Deployment:
+1. Click the **Deploy to Render** button above.
+2. Render will automatically read the `render.yaml` file from the repository.
+3. You will be prompted to enter your **`GROQ_API_KEY`**.
+4. Click **Apply**. Render will automatically provision:
+   * A FastAPI Web Service building from `backend/Dockerfile`.
+   * A 1 GB persistent disk for your SQLite database and ChromaDB storage (mounted at `/app/data`).
+   * Clean environment variables preset for your Groq API integration and CORS.
+5. Once deployment is complete, copy the backend URL provided by Render (e.g. `https://interview-iq-backend.onrender.com`).
+6. Go to your live [GitHub Pages site](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/), click the **Gear (API settings) icon** in the topbar, enter your new Render backend URL, and click **Save**!
+
+#### Manual Setup (Alternative):
+If you prefer to configure the backend service manually on Render:
+- Create a new **Web Service** on Render linked to your repository.
 - Set the **Root Directory** to `backend`.
 - Select **Docker** as the Runtime (Render will automatically detect and build using `backend/Dockerfile`).
 - Add the following **Environment Variables** in the Render settings:
-  - `LLM_PROVIDER`: Set to `groq` (highly recommended for production hosting as it runs fast and doesn't crash low-memory containers).
+  - `LLM_PROVIDER`: Set to `groq` (highly recommended for production hosting).
   - `GROQ_API_KEY`: Your Groq API key.
   - `GROQ_MODEL`: `llama-3.3-70b-versatile` (or your model of choice).
 - (Optional) Set up a **Persistent Disk** on Render:
   - Mount Path: `/app/data`
   - Size: 1 GB (plenty for SQLite and embeddings).
-  - Add `DATABASE_URL=sqlite:////app/data/interview.db` and `CHROMA_PERSIST_DIR=/app/data/chroma_store` to environment variables so that candidate interviews and vector databases are stored on the persistent disk.
-
-#### 2. Frontend (React Static Site)
-- Create a new **Static Site** on Render.
-- Set the **Root Directory** to `frontend`.
-- Set **Build Command** to `npm run build`.
-- Set **Publish Directory** to `dist`.
-- Add an **Environment Variable**:
-  - `VITE_API_BASE_URL`: Set this to your backend's Render Web Service URL (e.g. `https://your-backend-service.onrender.com`).
+  - Add `DATABASE_URL=sqlite:////app/data/interview.db` and `CHROMA_PERSIST_DIR=/app/data/chroma_store` to environment variables.
 
 ### CI/CD with GitHub Actions
 

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: interview-iq-backend
+    env: docker
+    dockerContext: ./backend
+    dockerFilePath: ./backend/Dockerfile
+    plan: free
+    disk:
+      name: interview-iq-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: DATABASE_URL
+        value: sqlite:////app/data/interview.db
+      - key: CHROMA_PERSIST_DIR
+        value: /app/data/chroma_store
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173,https://pranavkas.github.io
