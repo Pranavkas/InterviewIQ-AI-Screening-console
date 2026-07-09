@@ -3,7 +3,7 @@ services:
     name: interview-iq-backend
     env: docker
     dockerContext: ./backend
-    dockerFilePath: ./backend/Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     plan: free
     disk:
       name: interview-iq-data
