@@ -1,4 +1,4 @@
-# InterviewIQ — AI-Powered Candidate Screening System
+# InterviewIQ — AI Screening Console
 
 [![GitHub Pages](https://img.shields.io/badge/Live-Demo--on--GitHub--Pages-2dd4bf?style=for-the-badge&logo=github)](https://pranavkas.github.io/InterviewIQ-An-AI-Powered-Candidate-Screening-System/)
 [![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/Pranavkas/InterviewIQ-An-AI-Powered-Candidate-Screening-System)
