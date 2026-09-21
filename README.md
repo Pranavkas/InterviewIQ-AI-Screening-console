@@ -1,6 +1,6 @@
 # InterviewIQ — AI Screening Console
 
-[![GitHub Pages](https://pranavkas.github.io/InterviewIQ-AI-Screening-console/)
+[![GitHub Pages](https://img.shields.io/badge/Live-Demo--on--GitHub--Pages-2dd4bf?style=for-the-badge&logo=github)](https://pranavkas.github.io/InterviewIQ-AI-Screening-console/)
 [![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/Pranavkas/InterviewIQ-An-AI-Powered-Candidate-Screening-System)
 
 A production-ready, full-stack, RAG-driven screening system that simulates structured technical interviews. Questions are generated dynamically at runtime based on the candidate's resume, the selected role, and custom role-specific knowledge bases fetched via local vector retrieval.
